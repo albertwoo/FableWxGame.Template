@@ -1,0 +1,9 @@
+node_modules/
+.fake/
+bin/
+obj/
+paket-files/
+wx/fable
+
+
+
