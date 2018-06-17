@@ -3,7 +3,7 @@ module TetrisDomain
 open System
 
 type Square = { Location: int * int; Color: int * int * int * float }
-type BlockType = T | L | J | I | O | X
+type BlockType = T | L | J | I | O | Z | RZ | X
 type Block = { Type: BlockType; Squares: Square list }
 type Action = Rotate | Left | Right | Down
 
@@ -12,11 +12,14 @@ let generateRandomColor () =
     rand.Next(0, 188), rand.Next(0, 188), rand.Next(0, 188), 1.
 let getRandomBlockType () =
     let rand = (new Random()).Next(1, 100)
-    if rand < 20 then T
-    elif rand >= 2 && rand < 40 then L
-    elif rand >= 40 && rand < 60 then J
-    elif rand >= 60 && rand < 80 then I
-    elif rand >= 80 && rand < 99 then O
+    let rate = 100 / 7
+    if rand < rate then T
+    elif rand >= rate && rand < rate * 2 then L
+    elif rand >= rate * 2 && rand < rate * 3 then J
+    elif rand >= rate * 3 && rand < rate * 4 then I
+    elif rand >= rate * 4 && rand < rate * 5 then O
+    elif rand >= rate * 5 && rand < rate * 6 then Z
+    elif rand >= rate * 6 && rand < (rate * 7 - 1) then RZ
     else X
 let generateBlock blockType color =
     let usedColor = if Option.isSome color then color.Value else generateRandomColor()
@@ -69,6 +72,26 @@ let generateBlock blockType color =
                 { Location = (0, 1); Color = usedColor }
                 { Location = (1, 0); Color = usedColor }
                 { Location = (1, 1); Color = usedColor }
+            ]
+        }
+    | Z -> 
+        { 
+            Type = Z; 
+            Squares = [
+                { Location = (1, 1); Color = usedColor }
+                { Location = (0, 0); Color = usedColor }
+                { Location = (0, 1); Color = usedColor }
+                { Location = (1, 2); Color = usedColor }
+            ]
+        }
+    | RZ -> 
+        { 
+            Type = RZ; 
+            Squares = [
+                { Location = (0, 1); Color = usedColor }
+                { Location = (0, 2); Color = usedColor }
+                { Location = (1, 1); Color = usedColor }
+                { Location = (1, 0); Color = usedColor }
             ]
         }
     | X -> 
