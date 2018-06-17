@@ -208,19 +208,9 @@ let subscriptions model =
         Cmd.ofSub touch
     ]|> Cmd.batch 
 
-#if DEBUG
-open Elmish.Debug
-open Elmish.HMR
-#endif
-
 Program.mkProgram init update view
 |> Program.withSubscription subscriptions
 #if DEBUG
 |> Program.withConsoleTrace
-|> Program.withHMR
-#endif
-//|> Program.withReact "elmish-app"
-#if DEBUG
-|> Program.withDebugger
 #endif
 |> Program.run

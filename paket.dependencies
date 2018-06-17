@@ -1,0 +1,8 @@
+storage: none
+source https://api.nuget.org/v3/index.json
+
+nuget Fable.Core
+nuget Fable.Elmish.Debugger
+nuget Fable.Elmish.HMR
+
+clitool dotnet-fable
