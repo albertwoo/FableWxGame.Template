@@ -1,5 +1,4 @@
 module TetrisDomain
-
 open System
 
 type Square = { Location: int * int; Color: int * int * int * float }
@@ -10,7 +9,7 @@ type Action = Rotate | Left | Right | Down
 let generateRandomColor () =
     let rand = new Random()
     rand.Next(0, 188), rand.Next(0, 188), rand.Next(0, 188), 1.
-let getRandomBlockType () =
+let generateRandomBlockType () =
     let rand = (new Random()).Next(1, 100)
     let rate = 100 / 7
     if rand < rate then T
@@ -21,7 +20,7 @@ let getRandomBlockType () =
     elif rand >= rate * 5 && rand < rate * 6 then Z
     elif rand >= rate * 6 && rand < (rate * 7 - 1) then RZ
     else X
-let generateBlock blockType color =
+let generateBlock color blockType =
     let usedColor = if Option.isSome color then color.Value else generateRandomColor()
     match blockType with 
     | T -> 
@@ -105,72 +104,65 @@ let generateBlock blockType color =
                 { Location = (2, 1); Color = usedColor }
             ]
         }
-let setBlockToMid columns movingBlock =
-    { 
-        movingBlock with 
-            Squares = 
-                movingBlock.Squares 
-                |> List.map (fun x -> 
-                    {
-                        Location = (fst x.Location, snd x.Location + columns / 2 - 1)
-                        Color = x.Color
-                    })
-    }
-let transformBlock action movingBlock amount =
+
+let isSquaresCollided squares1 squares2 =
+    squares1 |> List.exists (fun x -> squares2 |> List.exists (fun y -> x.Location = y.Location))
+let isBlocked boundry squares block =
+    if isSquaresCollided squares block.Squares then true
+    else block.Squares |> List.exists (fun x ->
+        fst x.Location > fst boundry || snd x.Location < 0 || snd x.Location > snd boundry)
+
+let transformBlock action block =
     match action with
     | Rotate -> 
-        if movingBlock.Type = O then movingBlock
+        if block.Type = O then block
         else
-            let centerSquare = movingBlock.Squares |> List.head
+            let centerSquare = block.Squares |> List.head
             let r, c = centerSquare |> fun x -> x.Location
-            { movingBlock with
-                Squares = 
-                    centerSquare
-                    :: movingBlock.Squares |> List.skip 1 |> List.map (fun x ->
-                        let r1, c1 = x.Location
-                        { x with Location = r + (c1 - c), c - (r1 - r) }) }
+            { block with
+                Squares = centerSquare :: block.Squares
+                                          |> List.skip 1 |> List.map (fun x ->
+                                            let r1, c1 = x.Location
+                                            { x with Location = r + (c1 - c), c - (r1 - r) }) }
     | _ ->
-        { movingBlock with
+        { block with
             Squares =
-                movingBlock.Squares 
+                block.Squares 
                 |> List.map (fun x -> 
                     let (r, c) = x.Location
-                    { Location = (if action = Down then r + amount else r),
-                                 (if action = Left then c - amount elif action = Right then c + amount else c);
-                      Color = x.Color })}
-let isOutOfBoundry block boundry = block.Squares |> List.exists (fun x -> snd x.Location < 0 || snd x.Location > snd boundry)
-let isBlocked block boundry squares =
-    if squares |> List.exists (fun x -> block.Squares |> List.exists (fun y -> x.Location = y.Location)) then true
-    else block.Squares |> List.exists (fun x -> fst x.Location > fst boundry)
-let isNewBornBlock block = block.Squares |> List.exists (fun x -> fst x.Location = 0)
-let getScore boundry squares =
-    let rowSquares = 
+                    { x with Location =
+                                 (if action = Down then r + 1 else r),
+                                 (if action = Left then c - 1 elif action = Right then c + 1 else c)})}
+let rec moveUntilBlocked boundry squares action mb =
+    let pb = transformBlock action mb 
+    if isBlocked boundry squares pb then mb
+    else moveUntilBlocked boundry squares action pb
+
+let cleanSquares boundry squares =
+    let matchedRowSquares = 
         let row, column = boundry
         [for r in 0..row do
-            let blocks =
+            let matchedSquares =
                 [for c in 0..column do
-                    let block = squares |> List.tryFind (fun x -> x.Location = (r, c))
-                    if block.IsSome then yield block.Value ]
-            if List.length blocks = column + 1 then yield (r, blocks)]
-    let removeRow row targetSquare sourceSquare =
-        sourceSquare 
-        |> List.filter (fun x -> not (targetSquare |> List.exists (fun y -> y = x)))
+                    let square = squares |> List.tryFind (fun x -> x.Location = (r, c))
+                    if square.IsSome then yield square.Value ]
+            if matchedSquares.Length = column + 1 then yield (r, matchedSquares)]
+    let removeRow squares row =
+        squares 
+        |> List.filter (fun x -> fst x.Location <> row)
         |> List.map (fun x -> 
-            if fst x.Location < row then { Location = (fst x.Location + 1, snd x.Location); Color = x.Color }
-            else x)       
-    let mutable remainSquares = squares
-    rowSquares
-    |> List.iter (fun (r, targetBlocks) -> remainSquares <- removeRow r targetBlocks remainSquares)
-    let score = if rowSquares.Length = 0 then 0 else int (Math.Pow(2., float (rowSquares.Length - 1)))
-    remainSquares, score
-let getPredictionBlock movingBlock boundry squares =
-    let getMinRow sqs = if List.isEmpty sqs then 0 
-                        else sqs |> List.minBy (fun x -> fst x.Location) |> fun x -> fst x.Location
-    let mbMin = getMinRow movingBlock.Squares
-    [mbMin..(fst boundry + 1)]
-    |> List.map (fun x -> transformBlock Down movingBlock (x - mbMin))
-    |> List.find (fun x -> isBlocked x boundry squares)
-    |> fun x -> transformBlock Down x -1
-    |> fun x -> { x with Squares = x.Squares |> List.map (fun y ->
-                        let r, g, b, a = y.Color
-                        { y with Color = r, g, b, 0.3 }) }
+            if fst x.Location < row then { x with Location = (fst x.Location + 1, snd x.Location) }
+            else x)
+    let rec clean squares rowSquares =
+        if List.isEmpty rowSquares then squares
+        else clean
+                (removeRow squares (rowSquares |> List.head |> fst))
+                (List.skip 1 rowSquares)
+    let score =
+        if matchedRowSquares.Length = 0 then 0
+        else int (Math.Pow(2., float (matchedRowSquares.Length - 1)))
+    clean squares matchedRowSquares, score
+    
+let calculateSpeed defaultSpeed score = 
+    let s = defaultSpeed - score / 10
+    if s < 1 then 1 else s

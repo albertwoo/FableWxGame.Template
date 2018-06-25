@@ -5,6 +5,7 @@
   <ItemGroup>
     <Compile Include="WechatAPI.fs" />
     <Compile Include="TetrisDomain.fs" />
+    <Compile Include="Tetris.fs" />
     <Compile Include="App.fs" />
   </ItemGroup>
   <Import Project="..\.paket\Paket.Restore.targets" />
