@@ -1,3 +1,5 @@
+This project is trying to use Fsharp in wechat mini game development. It is for fun and not finished (wx api is not declared correctly in the project and I do not know how so far). 
+
 # Environmnet requirement
 1. npm >= 5.6
 2. dotnet core >= 2.0.0
