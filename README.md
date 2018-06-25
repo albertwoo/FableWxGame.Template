@@ -1,4 +1,4 @@
-This project is trying to use Fsharp in wechat mini game development. It is for fun and not finished (wx api is not declared correctly in the project and I do not know how so far). 
+This project is trying to use Fsharp in wechat mini game development. It is just for fun. 
 
 # Environmnet requirement
 1. npm >= 5.6
